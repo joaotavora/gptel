@@ -108,22 +108,11 @@ the response is inserted into the current buffer after point."
       (set-process-query-on-exit-flag process nil)
       (setf (alist-get process gptel-curl--process-alist)
             (nconc (list :token token
-                         ;; FIXME `aref' breaks `cl-struct' abstraction boundary
-                         ;; FIXME `cl--generic-method' is an internal `cl-struct'
-                         :parser (cl--generic-method-function
-                                  (if stream
-                                      (cl-find-method
-                                       'gptel-curl--parse-stream nil
-                                       (list
-                                        (aref (buffer-local-value
-                                               'gptel-backend (plist-get info :buffer))
-                                              0) t))
-                                    (cl-find-method
-                                     'gptel--parse-response nil
-                                     (list
-                                      (aref (buffer-local-value
-                                             'gptel-backend (plist-get info :buffer))
-                                            0) t t))))
+                         :backend (with-current-buffer (plist-get info :buffer)
+                                    gptel-backend)
+                         :parser (if stream
+                                     #'gptel-curl--parse-stream
+                                   #'gptel--parse-response)
                          :callback (or callback
                                        (if stream
                                            #'gptel-curl--stream-insert-response
@@ -301,7 +290,8 @@ See `gptel--url-get-response' for details."
                  (http-status (plist-get proc-info :http-status)))
         ;; Find data chunk(s) and run callback
         (when-let (((equal http-status "200"))
-                   (response (funcall (plist-get proc-info :parser) nil proc-info))
+                   (response (funcall (plist-get proc-info :parser)
+                                      (plist-get proc-info :backend) proc-info))
                    ((not (equal response ""))))
           (funcall (or (plist-get proc-info :callback)
                        #'gptel-curl--stream-insert-response)
@@ -343,8 +333,7 @@ PROCESS and _STATUS are process parameters."
   "Parse the buffer BUF with curl's response.
 
 PROC-INFO is a plist with contextual information."
-  (let ((token (plist-get proc-info :token))
-        (parser (plist-get proc-info :parser)))
+  (cl-destructuring-bind (&key token parser backend &allow-other-keys) proc-info
     (goto-char (point-max))
     (search-backward token)
     (backward-char)
@@ -366,7 +355,7 @@ PROC-INFO is a plist with contextual information."
           (cond
            ((equal http-status "200")
             (list (string-trim
-                   (funcall parser nil response proc-info))
+                   (funcall parser backend response proc-info))
                   http-msg))
            ((plist-get response :error)
             (let* ((error-data (plist-get response :error))
