@@ -1212,7 +1212,7 @@ elements."
                 (delete-char 1))
                ((looking-back "\\(?:[[:word:]]\\|\s\\)\\*\\{2\\}"
                               (max (- (point) 3) (point-min)))
-                (backward-delete-char 1))))
+                (delete-char 1))))
         ((or "_" "*")
          (if (save-match-data
                (and (looking-back "\\(?:[[:space:]]\\|\s\\)\\(?:_\\|\\*\\)"
@@ -1225,9 +1225,9 @@ elements."
                            (looking-at "[[:space]]\\|\s")
                            (not (looking-back "\\(?:[[:space]]\\|\s\\)\\(?:_\\|\\*\\)"
                                               (max (- (point) 2) (point-min)))))
-                  (backward-delete-char 1)
+                  (delete-char 1)
                   (insert "/") t))
-              (progn (backward-delete-char 1)
+              (progn (delete-char 1)
                      (insert "/")))))))
     (buffer-string)))
 
@@ -1277,7 +1277,7 @@ text stream."
                    (delete-char 1))
                   ((looking-back "\\(?:[[:word:]]\\|\s\\)\\*\\{2\\}"
                                  (max (- (point) 3) (point-min)))
-                   (backward-delete-char 1))))
+                   (delete-char 1))))
                 ((and (or "_" "*") (guard (not in-src-block)))
                  (when (save-match-data
                          (save-excursion
@@ -1287,7 +1287,7 @@ text stream."
                              "[^[:space:][:punct:]\n]\\(?:_\\|\\*\\)\\(?:[[:space:][:punct:]]\\|$\\)")
                             (looking-at
                              "\\(?:[[:space:][:punct:]]\\)\\(?:_\\|\\*\\)\\([^[:space:][:punct:]]\\|$\\)"))))
-                   (backward-delete-char 1)
+                   (delete-char 1)
                    (insert "/"))))))
           (if noop-p
               (buffer-substring (point) start-pt)
