@@ -874,6 +874,7 @@ waiting for the response."
   (if (and arg (require 'gptel-transient nil t))
       (call-interactively #'gptel-menu)
   (message "Querying %s..." (gptel-backend-name gptel-backend))
+  (gptel--sanitize-model)
   (let* ((response-pt
           (if (use-region-p)
               (set-marker (make-marker) (region-end))
