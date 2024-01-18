@@ -437,6 +437,20 @@ with differing settings.")
    :stream t
    :models '("gpt-3.5-turbo" "gpt-3.5-turbo-16k" "gpt-4" "gpt-4-1106-preview")))
 
+(defvar gptel--togetherai
+  (gptel-make-openai
+   "TogetherAI"
+   :host "api.together.xyz"
+   :endpoint "/v1/chat/completions"
+   :header (lambda () `(("Authorization" . ,(concat "Bearer " (gptel--get-api-key)))))
+   :key 'gptel-api-key
+   :stream t
+   :models '(;; has many more.  Listing all here probably silly
+             "mistralai/Mixtral-8x7B-Instruct-v0.1"
+             "codellama/CodeLlama-13b-Instruct-hf"
+             "codellama/CodeLlama-34b-Instruct-hf"))
+  "A backend for TogetherAI OpenAI-compatibility API")
+
 (defcustom gptel-backend gptel--openai
   "LLM backend to use.
 
@@ -459,6 +473,7 @@ README for examples."
   :group 'gptel
   :type `(choice
           (const :tag "ChatGPT" ,gptel--openai)
+          (const :tag "TogetherAI" ,gptel--togetherai)
           (restricted-sexp :match-alternatives (gptel-backend-p 'nil)
            :tag "Other backend")))
 
@@ -1154,6 +1169,16 @@ INTERACTIVEP is t when gptel is called interactively."
       (text-mode)
       (visual-line-mode 1))
      (t (funcall gptel-default-mode)))
+    (let* ((backend (default-value 'gptel-backend)) ; FIXME: should be arg
+           (available (gptel-backend-models backend)))
+      (unless (member gptel-model available)
+        (let ((fallback (car available)))
+          (display-warning
+           'gptel
+           (format (concat "Preferred `gptel-model' \"%s\" not"
+                           "supported in \"%s\", using \"%s\" instead")
+                   gptel-model (gptel-backend-name backend) fallback))
+          (setq-local gptel-model fallback))))
     (unless gptel-mode (gptel-mode 1))
     (goto-char (point-max))
     (skip-chars-backward "\t\r\n")
