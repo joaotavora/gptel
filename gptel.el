@@ -1130,6 +1130,20 @@ See `gptel-curl--get-response' for its contents.")
         (list nil (concat "(" http-msg ") Could not parse HTTP response.")
               "Could not parse HTTP response.")))))
 
+(cl-defun gptel--sanitize-model (&key (backend gptel-backend)
+                                      (shoosh t))
+  "Check if `gptel-model' is available in backend, adjust accordingly"
+  (let* ((available (gptel-backend-models backend)))
+    (unless (member gptel-model available)
+      (let ((fallback (car available)))
+        (unless shoosh
+          (display-warning
+           'gptel
+           (format (concat "Preferred `gptel-model' \"%s\" not"
+                           "supported in \"%s\", using \"%s\" instead")
+                   gptel-model (gptel-backend-name backend) fallback)))
+        (setq-local gptel-model fallback)))))
+
 ;;;###autoload
 (defun gptel (name &optional _ initial interactivep)
   "Switch to or start ChatGPT session with NAME.
@@ -1169,16 +1183,8 @@ INTERACTIVEP is t when gptel is called interactively."
       (text-mode)
       (visual-line-mode 1))
      (t (funcall gptel-default-mode)))
-    (let* ((backend (default-value 'gptel-backend)) ; FIXME: should be arg
-           (available (gptel-backend-models backend)))
-      (unless (member gptel-model available)
-        (let ((fallback (car available)))
-          (display-warning
-           'gptel
-           (format (concat "Preferred `gptel-model' \"%s\" not"
-                           "supported in \"%s\", using \"%s\" instead")
-                   gptel-model (gptel-backend-name backend) fallback))
-          (setq-local gptel-model fallback))))
+    (gptel--sanitize-model :backend (default-value 'gptel-backend)
+                           :shoosh nil)
     (unless gptel-mode (gptel-mode 1))
     (goto-char (point-max))
     (skip-chars-backward "\t\r\n")
